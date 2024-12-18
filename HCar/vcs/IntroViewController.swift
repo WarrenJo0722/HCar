@@ -2,7 +2,7 @@
 //  IntroViewController.swift
 //  HCar
 //
-//  Created by User on 12/17/24.
+//  Created by User on 12/18/24.
 //
 
 import UIKit
@@ -19,38 +19,38 @@ class IntroViewController: UIViewController {
     @IBOutlet weak var textFieldNick: UITextField!
     @IBOutlet weak var textFieldEmail: UITextField!
     @IBOutlet weak var textFieldPW: UITextField!
-    @IBOutlet weak var buttomComplete: UIButton!
+    @IBOutlet weak var buttonComplete: UIButton!
     
     var signupOrLogin = SignupOrLogin.signup
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Do any additional setup after loading the view.
+        
     }
 
     @IBAction func segmentChanged(_ sender: UISegmentedControl) {
         if sender.selectedSegmentIndex == 0 {
             signupOrLogin = .signup
-            textFieldNick.isHidden = false
-            buttomComplete.setTitle("회원가입", for: .normal)
-        } else if sender.selectedSegmentIndex == 1 {
+            textFieldNick.isHidden = false // 닉네임 텍스트필드 보이게 설정
+            buttonComplete.setTitle("회원가입", for: .normal) // 버튼 텍스트 변경
+        } else {
             signupOrLogin = .login
-            textFieldNick.isHidden = true
-            buttomComplete.setTitle("로그인", for: .normal)
+            textFieldNick.isHidden = true // 닉네임 텍스트필드 안 보이게 설정
+            buttonComplete.setTitle("로그인", for: .normal) // 버튼 텍스트 변경
         }
     }
     
     @IBAction func complete(_ sender: UIButton) {
         switch signupOrLogin {
         case .signup:
-            signUp()
+            signup()
         case .login:
             login()
         }
     }
     
-    func signUp() {
+    func signup() {
         guard let email = textFieldEmail.text, !email.isEmpty,
               let password = textFieldPW.text, !password.isEmpty,
               let nickname = textFieldNick.text, !nickname.isEmpty else {
@@ -58,34 +58,15 @@ class IntroViewController: UIViewController {
             return
         }
         
-        // Firebase Auth로 회원가입
-        Auth.auth().createUser(withEmail: email, password: password) { (authResult, error) in
+        // 파이어베이스 Auth로 회원가입
+        Auth.auth().createUser(withEmail: email, password: password) { (AuthDataResult, error) in
             if let error = error {
                 self.showAlert(title: "회원가입 오류", message: error.localizedDescription)
                 return
             }
-            
-            // Firebase Auth가 성공적으로 완료되면 Firestore에 유저 정보 저장
+            // 파이어베이스 Auth가 성공적으로 완료되면 파이어베이스 스토어에 유저정보 저장
+            print("회원가입 성공!")
             self.saveUser(email: email, nickname: nickname)
-        }
-    }
-    
-    func login() {
-        guard let email = textFieldEmail.text, !email.isEmpty,
-              let password = textFieldPW.text, !password.isEmpty else {
-            showAlert(title: "Error", message: "이메일과 비밀번호를 입력해주세요.")
-            return
-        }
-        
-        // Firebase Auth로 로그인
-        Auth.auth().signIn(withEmail: email, password: password) { (authResult, error) in
-            if let error = error {
-                self.showAlert(title: "로그인 오류", message: error.localizedDescription)
-                return
-            }
-            
-            // 로그인 성공
-            self.navigateToHomeScreen()
         }
     }
     
@@ -101,24 +82,45 @@ class IntroViewController: UIViewController {
             if let error = error {
                 self.showAlert(title: "Firestore 오류", message: error.localizedDescription)
             } else {
-                // 회원가입 성공
+                // 유저 정보 저장 완료
+                print("유저 정보 저장 완료!")
                 self.navigateToHomeScreen()
             }
         }
     }
     
+    func login() {
+        guard let email = textFieldEmail.text, !email.isEmpty,
+              let password = textFieldPW.text, !password.isEmpty else {
+                  showAlert(title: "Error", message: "이메일과 비밀번호를 입력해주세요.")
+                  return
+              }
+        
+        // Firebase Auth 로그인
+        Auth.auth().signIn(withEmail: email, password: password) { (authResult, error) in
+            if let error = error {
+                self.showAlert(title: "로그인 오류", message: error.localizedDescription)
+                return
+            }
+            
+            // 로그인 성공
+            print("로그인 성공")
+            self.navigateToHomeScreen()
+        }
+    }
+    
     func showAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        let okAction = UIAlertAction(title: "확인", style: .default, handler: nil)
-        alert.addAction(okAction)
+        alert.addAction(UIAlertAction(title: "확인", style: .default, handler: nil))
         present(alert, animated: true, completion: nil)
     }
     
-    // 로그인 후 홈 화면으로 이동
+    // 로그인 완료 후 홈 화면으로 이동
     func navigateToHomeScreen() {
-        // 예시로 다른 화면으로 이동
-        if let homeVC = self.storyboard?.instantiateViewController(withIdentifier: "mainTabBarController") {
-            self.navigationController?.pushViewController(homeVC, animated: true)
+        if let mainVC = storyboard?.instantiateViewController(withIdentifier: "mainTabBarController") {
+            mainVC.modalTransitionStyle = .crossDissolve // 부드러운 전환 효과
+            mainVC.modalPresentationStyle = .fullScreen
+            self.present(mainVC, animated: true, completion: nil)
         }
     }
 }

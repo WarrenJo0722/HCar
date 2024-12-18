@@ -8,6 +8,7 @@
 import UIKit
 import FirebaseFirestore
 import FirebaseStorage
+import FirebaseAuth
 
 class AddCarViewController: UIViewController, UINavigationControllerDelegate {
     let db = Firestore.firestore()
@@ -16,6 +17,7 @@ class AddCarViewController: UIViewController, UINavigationControllerDelegate {
     @IBOutlet weak var textFieldPrice: UITextField!
     @IBOutlet weak var textFieldYear: UITextField!
     @IBOutlet weak var buttonImage: UIButton!
+    @IBOutlet weak var textViewDetails: UITextView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -81,7 +83,7 @@ class AddCarViewController: UIViewController, UINavigationControllerDelegate {
                 if let urlString = urlString {
                     print("Image uploaded successfully: \(urlString)")
                     // cars 컬렉션에 Car 정보 저장
-                    let car = Car(name: self.textFieldName.text!, price: Int(self.textFieldPrice.text!)!, year: Int(self.textFieldYear.text!)!, image: urlString)
+                    let car = Car(name: self.textFieldName.text!, price: Int(self.textFieldPrice.text!)!, year: Int(self.textFieldYear.text!)!, image: urlString, details: self.textViewDetails.text!, userId: Auth.auth().currentUser!.uid, isSale: false)
                     self.saveCar(car: car)
                 } else {
                     print("Failed to upload image.")
@@ -113,11 +115,17 @@ class AddCarViewController: UIViewController, UINavigationControllerDelegate {
         do {
             let jsonData = try encoder.encode(car)
             let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
-            db.collection("cars").addDocument(data: jsonObject ?? [:]) { error in
+            let carRef = db.collection("cars").addDocument(data: jsonObject ?? [:]) { error in
                 if let error = error {
                     print("Error writing document: \(error)")
+                }
+            }
+            
+            db.collection("cars").document(carRef.documentID).updateData(["id": carRef.documentID]) { updateError in
+                if let updateError = updateError {
+                    print("Error updating document ID: \(updateError)")
                 } else {
-                    print("Car successfully written")
+                    print("Document ID successfully updated")
                     self.navigationController?.popViewController(animated: true)
                 }
             }

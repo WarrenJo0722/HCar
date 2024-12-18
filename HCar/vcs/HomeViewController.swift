@@ -42,9 +42,14 @@ class HomeViewController: UIViewController {
             
             // 데이터를 순회하면서 Car 객체로 변환
             if let snapshot = snapshot {
-                CarListManager.shared.cars = snapshot.documents.compactMap { document in
-                    try? document.data(as: Car.self)
-                }
+                CarListManager.shared.cars = snapshot.documents.map { document in
+                    do {
+                        return try document.data(as: Car.self)
+                    } catch {
+                        print("Error decoding document \(document.documentID): \(error)")
+                        return nil
+                    }
+                }.compactMap { $0 }
                 print("Fetched Cars: \(CarListManager.shared.cars)")
                 self.tableView.reloadData()
             }
@@ -89,5 +94,20 @@ extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
         cell.labelYear.text = "\(car.year)년식"
         
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        // 선택된 셀 정보 확인
+        let selectedCar = CarListManager.shared.allCars()[indexPath.row]
+        print("선택된 차량 정보: \(selectedCar.name)")
+        
+        // 세그웨이 호출
+        performSegue(withIdentifier: "showCarDetail", sender: selectedCar)
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "showCarDetail", let carInfoVC = segue.destination as? CarInfoViewController, let selectedCar = sender as? Car {
+            carInfoVC.car = selectedCar
+        }
     }
 }
